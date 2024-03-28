@@ -1,5 +1,5 @@
 server:
-  port: 18081
+  port: 18083
 spring:
   application:
     name: template-service
@@ -16,14 +16,3 @@ spring:
     show-sql: true
     hibernate:
       ddl-auto: validate
-  mail:
-    protocol: smtps
-    host: ${ARCHIPIO_TEMPLATE_SERVICE_MAIL_HOST}
-    port: ${ARCHIPIO_TEMPLATE_SERVICE_MAIL_PORT}
-    username: ${ARCHIPIO_TEMPLATE_SERVICE_MAIL_USERNAME}
-    password: ${ARCHIPIO_TEMPLATE_SERVICE_MAIL_PASSWORD}
-    test-connection: true
-    properties:
-      mail.smtp.auth: true
-      mail.smtp.starttls.enable: true
-      mail.smtp.ssl.enable: true
