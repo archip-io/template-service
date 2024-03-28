@@ -1,0 +1,24 @@
+name: Test Maven Application
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - '*'
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'corretto'
+          cache: maven
+      - name: Test
+        run: mvn -s $GITHUB_WORKSPACE/.github/workflows/settings.xml -B test --file pom.xml
+        env:
+          USER_NAME: ${{ secrets.USERNAME }}
+          ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
