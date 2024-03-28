@@ -5,12 +5,12 @@ spring:
     name: template-service
   datasource:
     url: jdbc:postgresql://${ARCHIPIO_TEMPLATE_SERVICE_DB_URL}/${ARCHIPIO_TEMPLATE_SERVICE_DB_NAME}
-    username: ${ARCHIPIO_TEMPLATE_SERVICE_DB_TEMPLATE}
+    username: ${ARCHIPIO_TEMPLATE_SERVICE_DB_USER}
     password: ${ARCHIPIO_TEMPLATE_SERVICE_DB_PASSWORD}
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.xml
     url: jdbc:postgresql://${ARCHIPIO_TEMPLATE_SERVICE_DB_URL}/${ARCHIPIO_TEMPLATE_SERVICE_DB_NAME}
-    user: ${ARCHIPIO_TEMPLATE_SERVICE_DB_TEMPLATE}
+    user: ${ARCHIPIO_TEMPLATE_SERVICE_DB_USER}
     password: ${ARCHIPIO_TEMPLATE_SERVICE_DB_PASSWORD}
   jpa:
     show-sql: true
