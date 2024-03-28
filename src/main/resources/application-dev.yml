@@ -1,0 +1,29 @@
+server:
+  port: 18081
+spring:
+  application:
+    name: template-service
+  datasource:
+    url: jdbc:postgresql://${ARCHIPIO_TEMPLATE_SERVICE_DB_URL}/${ARCHIPIO_TEMPLATE_SERVICE_DB_NAME}
+    username: ${ARCHIPIO_TEMPLATE_SERVICE_DB_TEMPLATE}
+    password: ${ARCHIPIO_TEMPLATE_SERVICE_DB_PASSWORD}
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.xml
+    url: jdbc:postgresql://${ARCHIPIO_TEMPLATE_SERVICE_DB_URL}/${ARCHIPIO_TEMPLATE_SERVICE_DB_NAME}
+    user: ${ARCHIPIO_TEMPLATE_SERVICE_DB_TEMPLATE}
+    password: ${ARCHIPIO_TEMPLATE_SERVICE_DB_PASSWORD}
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: validate
+  mail:
+    protocol: smtps
+    host: ${ARCHIPIO_TEMPLATE_SERVICE_MAIL_HOST}
+    port: ${ARCHIPIO_TEMPLATE_SERVICE_MAIL_PORT}
+    username: ${ARCHIPIO_TEMPLATE_SERVICE_MAIL_USERNAME}
+    password: ${ARCHIPIO_TEMPLATE_SERVICE_MAIL_PASSWORD}
+    test-connection: true
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+      mail.smtp.ssl.enable: true
