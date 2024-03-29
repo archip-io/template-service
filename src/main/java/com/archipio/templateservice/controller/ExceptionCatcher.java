@@ -13,6 +13,7 @@ import com.archipio.templateservice.exception.InvalidTemplateConfigurationFormat
 import com.archipio.templateservice.exception.InvalidZipFormatException;
 import com.archipio.templateservice.exception.TemplateCodeAlreadyExistsException;
 import com.archipio.templateservice.exception.TemplateNameAlreadyExistsException;
+import com.archipio.templateservice.exception.TemplateNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import java.time.Instant;
@@ -178,6 +179,16 @@ public class ExceptionCatcher {
                 .createdAt(Instant.now())
                 .message(getMessage("exception.template-name-already-exists", request))
                 .build());
+  }
+
+  @ExceptionHandler(TemplateNotFoundException.class)
+  public ResponseEntity<ErrorDto> handleTemplateNotFoundException(HttpServletRequest request) {
+    return ResponseEntity.status(NOT_FOUND)
+            .body(
+                    ErrorDto.builder()
+                            .createdAt(Instant.now())
+                            .message(getMessage("exception.template-not-found", request))
+                            .build());
   }
 
   @ExceptionHandler(AccessDeniedException.class)

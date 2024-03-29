@@ -70,4 +70,32 @@ class TemplateRepositoryTest {
     // Check
     assertThat(actual).isFalse();
   }
+
+  @Test
+  void findByCode_whenCodeExists_thenReturnTemplate() {
+    // Prepare
+    final var code = "template";
+    final var template = new Template();
+    template.setCode(code);
+    entityManager.persist(template);
+
+    // Do
+    var actual = templateRepository.findByCode(code);
+
+    // Check
+    assertThat(actual.isPresent()).isTrue();
+    assertThat(actual.get().getCode()).isEqualTo(code);
+  }
+
+  @Test
+  void findByCode_whenCodeNotExists_thenReturnEmptyOptional() {
+    // Prepare
+    final var code = "template";
+
+    // Do
+    var actual = templateRepository.findByCode(code);
+
+    // Check
+    assertThat(actual.isPresent()).isFalse();
+  }
 }
