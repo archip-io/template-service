@@ -28,6 +28,7 @@
         <lombok-mapstruct-binding.version>0.2.0</lombok-mapstruct-binding.version>
         <json-schema-validator.version>1.4.0</json-schema-validator.version>
         <commons-io.version>2.15.1</commons-io.version>
+        <commons-collections.version>3.2.2</commons-collections.version>
     </properties>
 
     <profiles>
@@ -126,6 +127,11 @@
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
             <version>${commons-io.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-collections</groupId>
+            <artifactId>commons-collections</artifactId>
+            <version>${commons-collections.version}</version>
         </dependency>
 
 

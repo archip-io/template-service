@@ -2,13 +2,17 @@ package com.archipio.templateservice.service.impl;
 
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 
+import com.archipio.templateservice.dto.RenderDto;
 import com.archipio.templateservice.dto.TemplateConfigDto;
 import com.archipio.templateservice.dto.TemplateZipDto;
+import com.archipio.templateservice.exception.InvalidArgumentsException;
 import com.archipio.templateservice.exception.InvalidTemplateConfigurationFormatException;
 import com.archipio.templateservice.exception.TemplateCodeAlreadyExistsException;
+import com.archipio.templateservice.exception.TemplateFileNotFoundException;
 import com.archipio.templateservice.exception.TemplateNameAlreadyExistsException;
 import com.archipio.templateservice.exception.TemplateNotFoundException;
 import com.archipio.templateservice.mapper.TemplateMapper;
+import com.archipio.templateservice.persistence.entity.Parameter;
 import com.archipio.templateservice.persistence.repository.TemplateRepository;
 import com.archipio.templateservice.service.TemplateService;
 import com.archipio.templateservice.service.ZipService;
@@ -20,11 +24,16 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.LinkedHashSet;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.thymeleaf.TemplateEngine;
+import org.thymeleaf.context.Context;
 
 @Service
 @Transactional(readOnly = true)
@@ -46,6 +55,7 @@ public class TemplateServiceImpl implements TemplateService {
   private final Validator validator;
   private final TemplateRepository templateRepository;
   private final TemplateMapper templateMapper;
+  private final TemplateEngine customTemplateEngine;
 
   @Override
   @Transactional
@@ -104,5 +114,49 @@ public class TemplateServiceImpl implements TemplateService {
   public void deleteTemplate(String code) {
     var template = templateRepository.findByCode(code).orElseThrow(TemplateNotFoundException::new);
     templateRepository.delete(template);
+  }
+
+  @Override
+  public String renderTemplate(RenderDto renderDto) {
+    var template =
+        templateRepository
+            .findByCode(renderDto.getCode())
+            .orElseThrow(TemplateNotFoundException::new);
+
+    // Check params
+    var requiredParams =
+        template.getParameters().stream()
+            .filter(Parameter::getRequired)
+            .map(Parameter::getName)
+            .toList();
+    var allParams = template.getParameters().stream().map(Parameter::getName).toList();
+    var actualParams =
+        renderDto.getParameters().stream().map(RenderDto.ParameterDto::getName).toList();
+
+    if (new LinkedHashSet<>(actualParams).size() != actualParams.size()) {
+      throw new InvalidArgumentsException("exception.invalid-arguments.duplicate");
+    }
+    if (!CollectionUtils.containsAll(actualParams, requiredParams)) {
+      throw new InvalidArgumentsException("exception.invalid-arguments.missing-required-parameters");
+    }
+    if (!CollectionUtils.containsAll(allParams, actualParams)) {
+      throw new InvalidArgumentsException("exception.invalid-arguments.extra-parameters");
+    }
+
+    // Find template file
+    var templateFilePath = Path.of(STORAGE_PATH + "/" + template.getCode() + ".html");
+    if (!Files.exists(templateFilePath)) {
+      throw new TemplateFileNotFoundException();
+    }
+
+    // Render
+    Context ctx = new Context();
+    ctx.setVariables(
+        renderDto.getParameters().stream()
+            .collect(
+                Collectors.toMap(
+                    RenderDto.ParameterDto::getName, RenderDto.ParameterDto::getValue)));
+
+    return customTemplateEngine.process(templateFilePath.toAbsolutePath().toString(), ctx);
   }
 }

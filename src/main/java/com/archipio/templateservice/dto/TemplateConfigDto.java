@@ -9,6 +9,8 @@ import static com.archipio.templateservice.util.ValidationUtils.TEMPLATE_NAME_MI
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
+
+import java.util.ArrayList;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -39,7 +41,7 @@ public class TemplateConfigDto {
 
   private String description;
 
-  @Valid private List<ParameterDto> parameters;
+  @Valid private List<ParameterDto> parameters = new ArrayList<>();
 
   @Data
   @NoArgsConstructor
