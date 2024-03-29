@@ -7,6 +7,7 @@ import com.archipio.templateservice.dto.TemplateZipDto;
 import com.archipio.templateservice.exception.InvalidTemplateConfigurationFormatException;
 import com.archipio.templateservice.exception.TemplateCodeAlreadyExistsException;
 import com.archipio.templateservice.exception.TemplateNameAlreadyExistsException;
+import com.archipio.templateservice.exception.TemplateNotFoundException;
 import com.archipio.templateservice.mapper.TemplateMapper;
 import com.archipio.templateservice.persistence.repository.TemplateRepository;
 import com.archipio.templateservice.service.TemplateService;
@@ -96,5 +97,12 @@ public class TemplateServiceImpl implements TemplateService {
     // Save template configuration
     var template = templateMapper.toEntity(templateConfigDto);
     templateRepository.save(template);
+  }
+
+  @Override
+  @Transactional
+  public void deleteTemplate(String code) {
+    var template = templateRepository.findByCode(code).orElseThrow(TemplateNotFoundException::new);
+    templateRepository.delete(template);
   }
 }

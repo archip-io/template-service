@@ -3,6 +3,7 @@ package com.archipio.templateservice.unittest.service.impl;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -14,6 +15,7 @@ import com.archipio.templateservice.dto.TemplateConfigDto;
 import com.archipio.templateservice.exception.InvalidTemplateConfigurationFormatException;
 import com.archipio.templateservice.exception.TemplateCodeAlreadyExistsException;
 import com.archipio.templateservice.exception.TemplateNameAlreadyExistsException;
+import com.archipio.templateservice.exception.TemplateNotFoundException;
 import com.archipio.templateservice.mapper.TemplateMapper;
 import com.archipio.templateservice.persistence.entity.Template;
 import com.archipio.templateservice.persistence.repository.TemplateRepository;
@@ -28,6 +30,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -240,5 +243,36 @@ class TemplateServiceImplTest {
     verify(validator, times(1)).validate(templateConfigDto);
     verify(templateRepository, times(1)).existsByCode(templateCode);
     verify(templateRepository, times(1)).existsByName(templateName);
+  }
+
+  @Test
+  public void deleteTemplate_whenTemplateExists_thenDeleteTemplate() {
+    // Prepare
+    final var code = "code";
+    final var template = new Template();
+
+    when(templateRepository.findByCode(code)).thenReturn(Optional.of(template));
+    doNothing().when(templateRepository).delete(template);
+
+    // Do
+    templateService.deleteTemplate(code);
+
+    // Check
+    verify(templateRepository, times(1)).findByCode(code);
+    verify(templateRepository, times(1)).delete(template);
+  }
+
+  @Test
+  public void deleteTemplate_whenTemplateNotExists_thenThrownTemplateNotFoundException() {
+    // Prepare
+    final var code = "code";
+
+    when(templateRepository.findByCode(code)).thenReturn(Optional.empty());
+
+    // Do
+    assertThatExceptionOfType(TemplateNotFoundException.class).isThrownBy(() -> templateService.deleteTemplate(code));
+
+    // Check
+    verify(templateRepository, times(1)).findByCode(code);
   }
 }
