@@ -1,12 +1,11 @@
 package com.archipio.templateservice.persistence.entity;
 
+import java.io.Serializable;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-
-import java.io.Serializable;
 
 @Data
 @NoArgsConstructor
@@ -14,8 +13,7 @@ import java.io.Serializable;
 @Builder
 public class Parameter implements Serializable {
 
-    private String name;
+  private String name;
 
-    @EqualsAndHashCode.Exclude
-    private boolean required;
+  @EqualsAndHashCode.Exclude private Boolean required;
 }
