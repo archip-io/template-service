@@ -4,8 +4,9 @@ import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 
 import com.archipio.templateservice.dto.RenderDto;
 import com.archipio.templateservice.dto.TemplateConfigDto;
+import com.archipio.templateservice.dto.TemplateOutputDto;
 import com.archipio.templateservice.dto.TemplateZipDto;
-import com.archipio.templateservice.exception.InvalidArgumentsException;
+import com.archipio.templateservice.exception.InvalidTemplateArgumentsException;
 import com.archipio.templateservice.exception.InvalidTemplateConfigurationFormatException;
 import com.archipio.templateservice.exception.TemplateCodeAlreadyExistsException;
 import com.archipio.templateservice.exception.TemplateFileNotFoundException;
@@ -25,10 +26,13 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.FileUtils;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -134,13 +138,15 @@ public class TemplateServiceImpl implements TemplateService {
         renderDto.getParameters().stream().map(RenderDto.ParameterDto::getName).toList();
 
     if (new LinkedHashSet<>(actualParams).size() != actualParams.size()) {
-      throw new InvalidArgumentsException("exception.invalid-arguments.duplicate");
+      throw new InvalidTemplateArgumentsException("exception.invalid-template-arguments.duplicate");
     }
     if (!CollectionUtils.containsAll(actualParams, requiredParams)) {
-      throw new InvalidArgumentsException("exception.invalid-arguments.missing-required-parameters");
+      throw new InvalidTemplateArgumentsException(
+          "exception.invalid-template-arguments.missing-required-parameters");
     }
     if (!CollectionUtils.containsAll(allParams, actualParams)) {
-      throw new InvalidArgumentsException("exception.invalid-arguments.extra-parameters");
+      throw new InvalidTemplateArgumentsException(
+          "exception.invalid-template-arguments.extra-parameters");
     }
 
     // Find template file
@@ -158,5 +164,24 @@ public class TemplateServiceImpl implements TemplateService {
                     RenderDto.ParameterDto::getName, RenderDto.ParameterDto::getValue)));
 
     return customTemplateEngine.process(templateFilePath.toAbsolutePath().toString(), ctx);
+  }
+
+  @Override
+  public List<TemplateOutputDto> getTemplates(Integer pageNumber, Integer pageSize) {
+    if (pageNumber == null || pageNumber < 0) {
+      pageNumber = 0;
+    }
+    if (pageSize == null || pageSize < 1) {
+      pageSize = 1;
+    }
+    var pageable = PageRequest.of(pageNumber, pageSize, Sort.by("name"));
+    var page = templateRepository.findAll(pageable);
+    return page.stream().map(templateMapper::toOutputDto).toList();
+  }
+
+  @Override
+  public TemplateOutputDto getTemplate(String code) {
+    var template = templateRepository.findByCode(code).orElseThrow(TemplateNotFoundException::new);
+    return templateMapper.toOutputDto(template);
   }
 }

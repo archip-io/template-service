@@ -9,9 +9,11 @@ import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.http.HttpStatus.UNSUPPORTED_MEDIA_TYPE;
 
 import com.archipio.templateservice.dto.ErrorDto;
+import com.archipio.templateservice.exception.InvalidTemplateArgumentsException;
 import com.archipio.templateservice.exception.InvalidTemplateConfigurationFormatException;
 import com.archipio.templateservice.exception.InvalidZipFormatException;
 import com.archipio.templateservice.exception.TemplateCodeAlreadyExistsException;
+import com.archipio.templateservice.exception.TemplateFileNotFoundException;
 import com.archipio.templateservice.exception.TemplateNameAlreadyExistsException;
 import com.archipio.templateservice.exception.TemplateNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -138,12 +140,23 @@ public class ExceptionCatcher {
                 .build());
   }
 
+  @ExceptionHandler(InvalidTemplateArgumentsException.class)
+  public ResponseEntity<ErrorDto> handleInvalidTemplateArgumentsFormatException(
+      HttpServletRequest request, InvalidTemplateArgumentsException e) {
+    var joiner = new StringJoiner(" ");
+    joiner.add(getMessage("exception.invalid-template-arguments", request));
+    joiner.add(getMessage(e.getMessage(), request));
+
+    return ResponseEntity.status(BAD_REQUEST)
+        .body(ErrorDto.builder().createdAt(Instant.now()).message(joiner.toString()).build());
+  }
+
   @ExceptionHandler(InvalidZipFormatException.class)
-  public ResponseEntity<ErrorDto> handleUnsupportedZipFormatException(
+  public ResponseEntity<ErrorDto> handleInvalidZipFormatException(
       HttpServletRequest request, InvalidZipFormatException e) {
     var joiner = new StringJoiner(" ");
     joiner.add(getMessage("exception.invalid-zip-format", request));
-    joiner.add(e.getMessage());
+    joiner.add(getMessage(e.getMessage(), request));
 
     return ResponseEntity.status(BAD_REQUEST)
         .body(ErrorDto.builder().createdAt(Instant.now()).message(joiner.toString()).build());
@@ -161,7 +174,8 @@ public class ExceptionCatcher {
   }
 
   @ExceptionHandler(TemplateCodeAlreadyExistsException.class)
-  public ResponseEntity<ErrorDto> handleEmailAlreadyExistsException(HttpServletRequest request) {
+  public ResponseEntity<ErrorDto> handleTemplateCodeAlreadyExistsException(
+      HttpServletRequest request) {
     return ResponseEntity.status(CONFLICT)
         .body(
             ErrorDto.builder()
@@ -184,11 +198,21 @@ public class ExceptionCatcher {
   @ExceptionHandler(TemplateNotFoundException.class)
   public ResponseEntity<ErrorDto> handleTemplateNotFoundException(HttpServletRequest request) {
     return ResponseEntity.status(NOT_FOUND)
-            .body(
-                    ErrorDto.builder()
-                            .createdAt(Instant.now())
-                            .message(getMessage("exception.template-not-found", request))
-                            .build());
+        .body(
+            ErrorDto.builder()
+                .createdAt(Instant.now())
+                .message(getMessage("exception.template-not-found", request))
+                .build());
+  }
+
+  @ExceptionHandler(TemplateFileNotFoundException.class)
+  public ResponseEntity<ErrorDto> handleTemplateFileNotFoundException(HttpServletRequest request) {
+    return ResponseEntity.status(NOT_FOUND)
+        .body(
+            ErrorDto.builder()
+                .createdAt(Instant.now())
+                .message(getMessage("exception.template-file-not-found", request))
+                .build());
   }
 
   @ExceptionHandler(AccessDeniedException.class)
