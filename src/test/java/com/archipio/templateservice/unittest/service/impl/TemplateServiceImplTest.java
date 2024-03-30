@@ -3,6 +3,7 @@ package com.archipio.templateservice.unittest.service.impl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
@@ -14,7 +15,8 @@ import static org.mockito.quality.Strictness.LENIENT;
 
 import com.archipio.templateservice.dto.RenderDto;
 import com.archipio.templateservice.dto.TemplateConfigDto;
-import com.archipio.templateservice.exception.InvalidArgumentsException;
+import com.archipio.templateservice.dto.TemplateOutputDto;
+import com.archipio.templateservice.exception.InvalidTemplateArgumentsException;
 import com.archipio.templateservice.exception.InvalidTemplateConfigurationFormatException;
 import com.archipio.templateservice.exception.TemplateCodeAlreadyExistsException;
 import com.archipio.templateservice.exception.TemplateFileNotFoundException;
@@ -42,22 +44,25 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
-
+import lombok.RequiredArgsConstructor;
 import org.apache.commons.io.FileUtils;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.ArgumentMatcher;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.thymeleaf.TemplateEngine;
@@ -78,6 +83,35 @@ class TemplateServiceImplTest {
   @Mock private TemplateEngine customTemplateEngine;
 
   @InjectMocks private TemplateServiceImpl templateService;
+
+  private static Stream<Arguments> provideParams() {
+    return Stream.of(
+        Arguments.of(
+            List.of(
+                RenderDto.ParameterDto.builder().name("param1").value("value1").build(),
+                RenderDto.ParameterDto.builder().name("param2").value("value2").build(),
+                RenderDto.ParameterDto.builder().name("param2").value("value3").build()),
+            Set.of(
+                Parameter.builder().name("param1").required(true).build(),
+                Parameter.builder().name("param2").required(true).build(),
+                Parameter.builder().name("param3").required(false).build())),
+        Arguments.of(
+            List.of(RenderDto.ParameterDto.builder().name("param1").value("value1").build()),
+            Set.of(
+                Parameter.builder().name("param1").required(true).build(),
+                Parameter.builder().name("param2").required(true).build(),
+                Parameter.builder().name("param3").required(false).build())),
+        Arguments.of(
+            List.of(
+                RenderDto.ParameterDto.builder().name("param1").value("value1").build(),
+                RenderDto.ParameterDto.builder().name("param2").value("value2").build(),
+                RenderDto.ParameterDto.builder().name("param3").value("value3").build(),
+                RenderDto.ParameterDto.builder().name("param4").value("value4").build()),
+            Set.of(
+                Parameter.builder().name("param1").required(true).build(),
+                Parameter.builder().name("param2").required(true).build(),
+                Parameter.builder().name("param3").required(false).build())));
+  }
 
   @Test
   void importTemplate_whenMultipartFileContainsValidZip_thenSaveFileAndConfig() throws IOException {
@@ -358,35 +392,6 @@ class TemplateServiceImplTest {
     verify(templateRepository, times(1)).findByCode(code);
   }
 
-  private static Stream<Arguments> provideParams() {
-    return Stream.of(
-        Arguments.of(
-            List.of(
-                RenderDto.ParameterDto.builder().name("param1").value("value1").build(),
-                RenderDto.ParameterDto.builder().name("param2").value("value2").build(),
-                RenderDto.ParameterDto.builder().name("param2").value("value3").build()),
-            Set.of(
-                Parameter.builder().name("param1").required(true).build(),
-                Parameter.builder().name("param2").required(true).build(),
-                Parameter.builder().name("param3").required(false).build())),
-        Arguments.of(
-            List.of(RenderDto.ParameterDto.builder().name("param1").value("value1").build()),
-            Set.of(
-                Parameter.builder().name("param1").required(true).build(),
-                Parameter.builder().name("param2").required(true).build(),
-                Parameter.builder().name("param3").required(false).build())),
-        Arguments.of(
-            List.of(
-                RenderDto.ParameterDto.builder().name("param1").value("value1").build(),
-                RenderDto.ParameterDto.builder().name("param2").value("value2").build(),
-                RenderDto.ParameterDto.builder().name("param3").value("value3").build(),
-                RenderDto.ParameterDto.builder().name("param4").value("value4").build()),
-            Set.of(
-                Parameter.builder().name("param1").required(true).build(),
-                Parameter.builder().name("param2").required(true).build(),
-                Parameter.builder().name("param3").required(false).build())));
-  }
-
   @ParameterizedTest
   @MethodSource("provideParams")
   public void
@@ -402,7 +407,7 @@ class TemplateServiceImplTest {
     when(templateRepository.findByCode(code)).thenReturn(Optional.of(template));
 
     // Do
-    assertThatExceptionOfType(InvalidArgumentsException.class)
+    assertThatExceptionOfType(InvalidTemplateArgumentsException.class)
         .isThrownBy(() -> templateService.renderTemplate(renderDto));
   }
 
@@ -435,9 +440,98 @@ class TemplateServiceImplTest {
     verify(templateRepository, times(1)).findByCode(code);
   }
 
+  @ParameterizedTest
+  @CsvSource(
+      value = {"1,2,1,2", "-1,2,0,2", "1,0,1,1", "null,2,0,2", "1,null,1,1"},
+      nullValues = "null")
+  public void getTemplates(
+      Integer pageNumber, Integer pageSize, Integer actualPageNumber, Integer actualPageSize) {
+    // Prepare
+    final var template = new Template();
+    final var templatePage =
+        new PageImpl<>(
+            List.of(template),
+            PageRequest.of(actualPageNumber, actualPageSize, Sort.by("name")),
+            1);
+    final var templateOutputDto = new TemplateOutputDto();
+    final var templateOutputDtoList = List.of(templateOutputDto);
+
+    when(templateRepository.findAll(
+            pageableThat(PageRequest.of(actualPageNumber, actualPageSize, Sort.by("name")))))
+        .thenReturn(templatePage);
+    when(templateMapper.toOutputDto(template)).thenReturn(templateOutputDto);
+
+    // Do
+    var actual = templateService.getTemplates(pageNumber, pageSize);
+
+    // Check
+    verify(templateRepository, times(1))
+        .findAll(pageableThat(PageRequest.of(actualPageNumber, actualPageSize, Sort.by("name"))));
+    verify(templateMapper, times(1)).toOutputDto(template);
+
+    assertThat(actual).containsExactlyInAnyOrderElementsOf(templateOutputDtoList);
+  }
+
+  @Test
+  public void getTemplate_whenTemplateExists_thenReturnTemplateOutputDto() {
+    // Prepare
+    final var code = "code";
+    final var template = new Template();
+    final var templateOutputDto = new TemplateOutputDto();
+
+    when(templateRepository.findByCode(code)).thenReturn(Optional.of(template));
+    when(templateMapper.toOutputDto(template)).thenReturn(templateOutputDto);
+
+    // Do
+    var actualTemplateOutputDto = templateService.getTemplate(code);
+
+    // Check
+    verify(templateRepository, times(1)).findByCode(code);
+    verify(templateMapper, times(1)).toOutputDto(template);
+
+    assertThat(actualTemplateOutputDto).isEqualTo(templateOutputDto);
+  }
+
+  @Test
+  public void getTemplate_whenTemplateNotExists_thenThrownTemplateNotFoundException() {
+    // Prepare
+    final var code = "code";
+
+    when(templateRepository.findByCode(code)).thenReturn(Optional.empty());
+
+    // Do
+    assertThatExceptionOfType(TemplateNotFoundException.class)
+        .isThrownBy(() -> templateService.getTemplate(code));
+
+    // Check
+    verify(templateRepository, times(1)).findByCode(code);
+  }
+
   private String getStoragePathValue() throws NoSuchFieldException, IllegalAccessException {
     Field field = TemplateServiceImpl.class.getDeclaredField("STORAGE_PATH");
     field.setAccessible(true);
     return (String) field.get(null);
+  }
+
+  private Pageable pageableThat(Pageable value) {
+    return argThat(new PageableThat(value));
+  }
+
+  @RequiredArgsConstructor
+  private static class PageableThat implements ArgumentMatcher<Pageable> {
+
+    private final Pageable pageable;
+
+    @Override
+    public boolean matches(Pageable argument) {
+      return argument.getPageNumber() == pageable.getPageNumber()
+          && argument.getPageSize() == pageable.getPageSize()
+          && argument.getSort().equals(pageable.getSort());
+    }
+
+    @Override
+    public Class<?> type() {
+      return Pageable.class;
+    }
   }
 }

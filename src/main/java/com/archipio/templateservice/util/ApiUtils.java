@@ -9,4 +9,5 @@ public class ApiUtils {
   public static final String IMPORT_SUFFIX = "/import";
   public static final String RENDER_SUFFIX = "/render";
   public static final String DELETE_SUFFIX = "";
+  public static final String GET_SUFFIX = "";
 }

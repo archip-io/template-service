@@ -5,7 +5,7 @@ import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 @Getter
-public class InvalidArgumentsException extends RuntimeException {
+public class InvalidTemplateArgumentsException extends RuntimeException {
 
   private final String message;
 }
