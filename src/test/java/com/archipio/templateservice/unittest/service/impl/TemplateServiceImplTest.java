@@ -19,7 +19,6 @@ import com.archipio.templateservice.dto.TemplateOutputDto;
 import com.archipio.templateservice.exception.InvalidTemplateArgumentsException;
 import com.archipio.templateservice.exception.InvalidTemplateConfigurationFormatException;
 import com.archipio.templateservice.exception.TemplateCodeAlreadyExistsException;
-import com.archipio.templateservice.exception.TemplateFileNotFoundException;
 import com.archipio.templateservice.exception.TemplateNameAlreadyExistsException;
 import com.archipio.templateservice.exception.TemplateNotFoundException;
 import com.archipio.templateservice.mapper.TemplateMapper;
@@ -377,7 +376,7 @@ class TemplateServiceImplTest {
   }
 
   @Test
-  public void renderTemplate_whenTemplateNotExists_thenThrownTemplateNotFoundException() {
+  public void renderTemplate_whenTemplateConfigNotExists_thenThrownTemplateNotFoundException() {
     // Prepare
     final var code = "code";
     final var renderDto = RenderDto.builder().code(code).build();
@@ -392,11 +391,31 @@ class TemplateServiceImplTest {
     verify(templateRepository, times(1)).findByCode(code);
   }
 
+  @Test
+  public void
+  renderTemplate_whenTemplateConfigExistsAndTemplateFileNotFound_thenThrownTemplateNotFoundException() {
+    // Prepare
+    final var code = "code";
+    final var renderDto = RenderDto.builder().code(code).build();
+    final var template = new Template();
+    template.setCode(code);
+
+    when(templateRepository.findByCode(code)).thenReturn(Optional.of(template));
+
+    // Do
+    assertThatExceptionOfType(TemplateNotFoundException.class)
+            .isThrownBy(() -> templateService.renderTemplate(renderDto));
+
+    // Check
+    verify(templateRepository, times(1)).findByCode(code);
+  }
+
   @ParameterizedTest
   @MethodSource("provideParams")
   public void
       renderTemplate_whenTemplateExistsAndParametersIsInvalid_thenThrownInvalidArgumentsException(
-          List<RenderDto.ParameterDto> params, Set<Parameter> configParams) {
+          List<RenderDto.ParameterDto> params, Set<Parameter> configParams)
+          throws NoSuchFieldException, IllegalAccessException, IOException {
     // Prepare
     var code = "code";
     var renderDto = RenderDto.builder().code(code).parameters(params).build();
@@ -404,40 +423,20 @@ class TemplateServiceImplTest {
     template.setCode(code);
     template.setParameters(configParams);
 
+    // Create template file
+    var storagePath = Path.of(getStoragePathValue()).toAbsolutePath().toString();
+    var templateFilePath = storagePath + "/" + code + ".html";
+    Files.createDirectories(Path.of(storagePath));
+    FileUtils.copyFile(new File(RESOURCES_DIR_PATH + "/test.html"), new File(templateFilePath));
+
     when(templateRepository.findByCode(code)).thenReturn(Optional.of(template));
 
     // Do
     assertThatExceptionOfType(InvalidTemplateArgumentsException.class)
         .isThrownBy(() -> templateService.renderTemplate(renderDto));
-  }
 
-  @Test
-  public void
-      renderTemplate_whenTemplateExistsAndParametersIsValidAndTemplateFileNotFound_thenThrownTemplateFileNotFoundException() {
-    // Prepare
-    final var code = "code";
-    final var params =
-        List.of(
-            RenderDto.ParameterDto.builder().name("param1").value("value1").build(),
-            RenderDto.ParameterDto.builder().name("param2").value("value2").build());
-    final var configParams =
-        Set.of(
-            Parameter.builder().name("param1").required(true).build(),
-            Parameter.builder().name("param2").required(true).build(),
-            Parameter.builder().name("param3").required(false).build());
-    final var renderDto = RenderDto.builder().code(code).parameters(params).build();
-    final var template = new Template();
-    template.setCode(code);
-    template.setParameters(configParams);
-
-    when(templateRepository.findByCode(code)).thenReturn(Optional.of(template));
-
-    // Do
-    assertThatExceptionOfType(TemplateFileNotFoundException.class)
-        .isThrownBy(() -> templateService.renderTemplate(renderDto));
-
-    // Check
-    verify(templateRepository, times(1)).findByCode(code);
+    // Return state
+    FileUtils.delete(new File(templateFilePath));
   }
 
   @ParameterizedTest

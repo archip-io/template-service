@@ -13,7 +13,6 @@ import com.archipio.templateservice.exception.InvalidTemplateArgumentsException;
 import com.archipio.templateservice.exception.InvalidTemplateConfigurationFormatException;
 import com.archipio.templateservice.exception.InvalidZipFormatException;
 import com.archipio.templateservice.exception.TemplateCodeAlreadyExistsException;
-import com.archipio.templateservice.exception.TemplateFileNotFoundException;
 import com.archipio.templateservice.exception.TemplateNameAlreadyExistsException;
 import com.archipio.templateservice.exception.TemplateNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -202,16 +201,6 @@ public class ExceptionCatcher {
             ErrorDto.builder()
                 .createdAt(Instant.now())
                 .message(getMessage("exception.template-not-found", request))
-                .build());
-  }
-
-  @ExceptionHandler(TemplateFileNotFoundException.class)
-  public ResponseEntity<ErrorDto> handleTemplateFileNotFoundException(HttpServletRequest request) {
-    return ResponseEntity.status(NOT_FOUND)
-        .body(
-            ErrorDto.builder()
-                .createdAt(Instant.now())
-                .message(getMessage("exception.template-file-not-found", request))
                 .build());
   }
 
