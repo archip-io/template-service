@@ -51,7 +51,7 @@ public class ZipServiceImpl implements ZipService {
         throw new InvalidZipFormatException("exception.invalid-zip-format.too-many-files");
       }
     } catch (ZipException e) {
-      throw new InvalidZipFormatException("exception.invalid-zip-format.invalid-format");
+      throw new InvalidZipFormatException("exception.invalid-zip-format.not-zip-archive");
     }
 
     return templateZipDto;

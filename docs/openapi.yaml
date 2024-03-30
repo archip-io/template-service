@@ -1,0 +1,434 @@
+openapi: 3.0.0
+info:
+  title: Template Service
+  description: |-
+    Template Service - это микросервис, который отвечает за управление шаблонами (писем электронной почты, отчетов и 
+    т.д.) и за их рендер.
+  version: 0.0.0
+servers:
+  - url: http://localhost:18084
+    description: Local Server URL
+tags:
+  - name: Template
+    description: Эндпоинты для управления и рендеринга шаблонов
+paths:
+  /api/v0/template/import:
+    post:
+      tags:
+        - Template
+      summary: Добавление шаблонов
+      description: Сохраняет файл шаблона в хранилище и конфигурацию шаблона в базу данных
+      operationId: importTemplate
+      security:
+        - bearerAuth:
+            - IMPORT_TEMPLATE
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                data:
+                  type: string
+                  format: binary
+        required: true
+      responses:
+        '200':
+          description: Шаблон успешно загружен
+        '400':
+          description: Неправильный формат ZIP архива; Неправильный формат конфигурации шаблона; Невалидные данные конфигурации шаблона
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/ErrorDto'
+              examples:
+                Не ZIP архив:
+                  description: Не ZIP архив
+                  value:
+                    created_at: '2024-03-27T03:26:19.385Z'
+                    message: 'Invalid ZIP format: Not ZIP archive.'
+                Архив содержит директорию:
+                  description: Архив содержит директорию
+                  value:
+                    created_at: '2024-03-27T03:26:19.385Z'
+                    message: 'Invalid ZIP format: Archive must not contain directories.'
+                Слишком мало файлов:
+                  description: Слишком мало файлов
+                  value:
+                    created_at: '2024-03-27T03:26:19.385Z'
+                    message: 'Invalid ZIP format: Too few files.'
+                Слишком много файлов:
+                  description: Слишком много файлов
+                  value:
+                    created_at: '2024-03-27T03:26:19.385Z'
+                    message: 'Invalid ZIP format: Too many files.'
+                Неправильное расширение файлов:
+                  description: Неправильное расширение файлов
+                  value:
+                    created_at: '2024-03-27T03:26:19.385Z'
+                    message: 'Invalid ZIP format: Invalid file extensions.'
+                Неправильный формат конфигурации шаблона:
+                  description: Неправильный формат конфигурации шаблона
+                  value:
+                    created_at: '2024-03-27T03:26:19.385Z'
+                    message: 'Invalid template configuration format.'
+                Невалидные данные конфигурации шаблона:
+                  description: Невалидные данные конфигурации шаблона
+                  value:
+                    created_at: '2024-03-27T03:26:19.385Z'
+                    message: 'Validation error:'
+                    errors: '{"code":"Template code must consist of lowercase Latin letters, numbers and underscores."}'
+        '403':
+          description: Нет доступа
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/ErrorDto'
+              example:
+                created_at: '2024-03-27T03:26:19.385Z'
+                message: Access denied.
+        '409':
+          description: Шаблон с таким именем или кодом уже существует
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/ErrorDto'
+              examples:
+                Шаблон с таким именем уже существует:
+                  description: Шаблон с таким именем уже существует
+                  value:
+                    created_at: '2024-03-27T03:26:19.385Z'
+                    message: Template name already exists.
+                Шаблон с таким кодом уже существует:
+                  description: Шаблон с таким кодом уже существует
+                  value:
+                    created_at: '2024-03-27T03:26:19.385Z'
+                    message: Template code already exists.
+        '500':
+          description: Ошибка на сервере
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/ErrorDto'
+              example:
+                created_at: '2024-03-27T03:26:19.385Z'
+                message: Internal server error.
+  /api/v0/template/render:
+    post:
+      tags:
+        - Template
+      summary: Рендер шаблона
+      description: Ищет шаблон по коду, проверяет заданные параметры на валидность и в случае успеха рендерит шаблон
+      operationId: renderTemplate
+      security:
+        - bearerAuth:
+            - RENDER_TEMPLATE
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RenderDto'
+        required: true
+      responses:
+        '200':
+          description: Шаблон успешно создан
+          content:
+            'text/html':
+              schema:
+                type: string
+                example: '<p>Привет, Василий!</p>'
+        '400':
+          description: Переданы неправильные аргументы шаблона
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/ErrorDto'
+              examples:
+                Аргументы дублируются:
+                  description: Аргументы дублируются
+                  value:
+                    created_at: '2024-03-27T03:26:19.385Z'
+                    message: 'Invalid template arguments: Arguments are duplicated.'
+                Пропущен обязательный аргумент:
+                  description: Пропущен обязательный аргумент
+                  value:
+                    created_at: '2024-03-27T03:26:19.385Z'
+                    message: 'Invalid template arguments: Missing required argument.'
+                Передан лишний аргумент:
+                  description: Передан лишний аргумент
+                  value:
+                    created_at: '2024-03-27T03:26:19.385Z'
+                    message: 'Invalid template arguments: Extra argument passed.'
+        '403':
+          description: Нет доступа
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/ErrorDto'
+              example:
+                created_at: '2024-03-27T03:26:19.385Z'
+                message: Access denied.
+        '404':
+          description: Шаблон не найден
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/ErrorDto'
+              example:
+                created_at: '2024-03-27T03:26:19.385Z'
+                message: Template not found.
+        '500':
+          description: Ошибка на сервере
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/ErrorDto'
+              example:
+                created_at: '2024-03-27T03:26:19.385Z'
+                message: Internal server error.
+  /api/v0/template/delete/{code}:
+    delete:
+      tags:
+        - Template
+      summary: Удаление шаблона
+      description: |-
+        Проверяет существует ли шаблон с заданным кодом и в случае успеха удалят конфигурацию из базы данных и файл из 
+        хранилища
+      operationId: deleteTemplate
+      security:
+        - bearerAuth:
+            - DELETE_TEMPLATE
+      parameters:
+        - name: code
+          description: Код шаблона
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 'activation_account_message'
+      responses:
+        '202':
+          description: Процесс изменения email начат
+        '403':
+          description: Нет доступа
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/ErrorDto'
+              example:
+                created_at: '2024-03-27T03:26:19.385Z'
+                message: Access denied.
+        '404':
+          description: Шаблон не найден
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/ErrorDto'
+              example:
+                created_at: '2024-03-27T03:26:19.385Z'
+                message: Template not found.
+        '500':
+          description: Ошибка на сервере
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/ErrorDto'
+              example:
+                created_at: '2024-03-27T03:26:19.385Z'
+                message: Internal server error.
+  /api/v0/template:
+    get:
+      tags:
+        - Template
+      summary: Получение списка шаблонов
+      description: Возвращает список шаблонов
+      operationId: getTemplates
+      security:
+        - bearerAuth:
+            - VIEW_TEMPLATE
+      parameters:
+        - name: page
+          description: Номер страницы
+          in: query
+          required: false
+          schema:
+            type: string
+            example: 0
+        - name: pageSize
+          description: Количество страниц
+          in: query
+          required: false
+          schema:
+            type: string
+            example: 1
+      responses:
+        '200':
+          description: Список шаблонов успешно получен
+          content:
+            'application/json':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TemplateOutputDto'
+        '403':
+          description: Нет доступа
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/ErrorDto'
+              example:
+                created_at: '2024-03-27T03:26:19.385Z'
+                message: Access denied.
+        '500':
+          description: Ошибка на сервере
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/ErrorDto'
+              example:
+                created_at: '2024-03-27T03:26:19.385Z'
+                message: Internal server error.
+  /api/v0/template/{code}:
+    get:
+      tags:
+        - Template
+      summary: Получение шаблона по коду
+      description: Проверяет, существует ли шаблон с заданным кодом и в случае успеха возвращает шаблон
+      operationId: getTemplate
+      security:
+        - bearerAuth:
+            - VIEW_TEMPLATE
+      parameters:
+        - name: code
+          description: Код шблона
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 'activation_account_message'
+      responses:
+        '200':
+          description: Шаблон успешно получен
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/TemplateOutputDto'
+        '403':
+          description: Нет доступа
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/ErrorDto'
+              example:
+                created_at: '2024-03-27T03:26:19.385Z'
+                message: Access denied.
+        '404':
+          description: Шаблон не найден
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/ErrorDto'
+              example:
+                created_at: '2024-03-27T03:26:19.385Z'
+                message: Template not found.
+        '500':
+          description: Ошибка на сервере
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/ErrorDto'
+              example:
+                created_at: '2024-03-27T03:26:19.385Z'
+                message: Internal server error.
+components:
+  schemas:
+    ErrorDto:
+      required:
+        - created_at
+        - message
+      type: object
+      properties:
+        message:
+          type: string
+          description: Сообщение ошибки
+          example: 'Validation error:'
+        errors:
+          type: object
+          additionalProperties:
+            type: string
+            description: Название поля и его ошибки
+            example: '{"code":"Template code must consist of lowercase Latin letters, numbers and underscores."}'
+          description: Название поля и его ошибки
+          example:
+            username: The username must start with a letter and contain only Latin letters, numbers and underscores.
+        created_at:
+          type: string
+          description: Время создания
+          format: date-time
+          example: '2024-03-27T03:57:26.951Z'
+    RenderDto:
+      required:
+        - code
+      type: object
+      properties:
+        code:
+          type: string
+          description: Код шаблона
+          example: 'activation_account_message'
+        parameters:
+          type: array
+          items:
+            required:
+              - name
+              - value
+            type: object
+            properties:
+              name:
+                type: string
+                description: Название параметра
+                example: 'first_name'
+              value:
+                type: string
+                description: Значение параметра
+                example: 'Василий'
+    TemplateOutputDto:
+      required:
+        - name
+        - code
+        - description
+        - parameters
+      type: object
+      properties:
+        name:
+          type: string
+          description: Название шаблона
+          example: 'Письмо для активации аккаунта'
+        code:
+          type: string
+          description: Код шаблона
+          example: 'activation_account_message'
+        description:
+          type: string
+          description: Описание шаблона
+          example: 'Письмо с ссылкой дя активации аккаунта пользователя'
+        parameters:
+          type: array
+          items:
+            required:
+              - name
+              - required
+            type: object
+            properties:
+              name:
+                type: string
+                description: Название параметра
+                example: 'first_name'
+              required:
+                type: boolean
+                description: Обязательный ли параметр
+                example: true
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

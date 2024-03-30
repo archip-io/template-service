@@ -9,7 +9,6 @@ import com.archipio.templateservice.dto.TemplateZipDto;
 import com.archipio.templateservice.exception.InvalidTemplateArgumentsException;
 import com.archipio.templateservice.exception.InvalidTemplateConfigurationFormatException;
 import com.archipio.templateservice.exception.TemplateCodeAlreadyExistsException;
-import com.archipio.templateservice.exception.TemplateFileNotFoundException;
 import com.archipio.templateservice.exception.TemplateNameAlreadyExistsException;
 import com.archipio.templateservice.exception.TemplateNotFoundException;
 import com.archipio.templateservice.mapper.TemplateMapper;
@@ -127,6 +126,12 @@ public class TemplateServiceImpl implements TemplateService {
             .findByCode(renderDto.getCode())
             .orElseThrow(TemplateNotFoundException::new);
 
+    // Find template file
+    var templateFilePath = Path.of(STORAGE_PATH + "/" + template.getCode() + ".html");
+    if (!Files.exists(templateFilePath)) {
+      throw new TemplateNotFoundException();
+    }
+
     // Check params
     var requiredParams =
         template.getParameters().stream()
@@ -138,21 +143,16 @@ public class TemplateServiceImpl implements TemplateService {
         renderDto.getParameters().stream().map(RenderDto.ParameterDto::getName).toList();
 
     if (new LinkedHashSet<>(actualParams).size() != actualParams.size()) {
-      throw new InvalidTemplateArgumentsException("exception.invalid-template-arguments.duplicate");
+      throw new InvalidTemplateArgumentsException(
+          "exception.invalid-template-arguments.duplicate-argument");
     }
     if (!CollectionUtils.containsAll(actualParams, requiredParams)) {
       throw new InvalidTemplateArgumentsException(
-          "exception.invalid-template-arguments.missing-required-parameters");
+          "exception.invalid-template-arguments.missing-required-argument");
     }
     if (!CollectionUtils.containsAll(allParams, actualParams)) {
       throw new InvalidTemplateArgumentsException(
-          "exception.invalid-template-arguments.extra-parameters");
-    }
-
-    // Find template file
-    var templateFilePath = Path.of(STORAGE_PATH + "/" + template.getCode() + ".html");
-    if (!Files.exists(templateFilePath)) {
-      throw new TemplateFileNotFoundException();
+          "exception.invalid-template-arguments.extra-argument");
     }
 
     // Render
