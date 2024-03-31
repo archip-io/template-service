@@ -11,6 +11,8 @@ servers:
 tags:
   - name: Template
     description: Эндпоинты для управления и рендеринга шаблонов
+  - name: System
+    description: Эндпоинты для использования другими микросервисами
 paths:
   /api/v0/template/import:
     post:
@@ -186,56 +188,6 @@ paths:
               example:
                 created_at: '2024-03-27T03:26:19.385Z'
                 message: Internal server error.
-  /api/v0/template/delete/{code}:
-    delete:
-      tags:
-        - Template
-      summary: Удаление шаблона
-      description: |-
-        Проверяет существует ли шаблон с заданным кодом и в случае успеха удалят конфигурацию из базы данных и файл из 
-        хранилища
-      operationId: deleteTemplate
-      security:
-        - bearerAuth:
-            - DELETE_TEMPLATE
-      parameters:
-        - name: code
-          description: Код шаблона
-          in: path
-          required: true
-          schema:
-            type: string
-            example: 'activation_account_message'
-      responses:
-        '202':
-          description: Процесс изменения email начат
-        '403':
-          description: Нет доступа
-          content:
-            'application/json':
-              schema:
-                $ref: '#/components/schemas/ErrorDto'
-              example:
-                created_at: '2024-03-27T03:26:19.385Z'
-                message: Access denied.
-        '404':
-          description: Шаблон не найден
-          content:
-            'application/json':
-              schema:
-                $ref: '#/components/schemas/ErrorDto'
-              example:
-                created_at: '2024-03-27T03:26:19.385Z'
-                message: Template not found.
-        '500':
-          description: Ошибка на сервере
-          content:
-            'application/json':
-              schema:
-                $ref: '#/components/schemas/ErrorDto'
-              example:
-                created_at: '2024-03-27T03:26:19.385Z'
-                message: Internal server error.
   /api/v0/template:
     get:
       tags:
@@ -313,6 +265,129 @@ paths:
             'application/json':
               schema:
                 $ref: '#/components/schemas/TemplateOutputDto'
+        '403':
+          description: Нет доступа
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/ErrorDto'
+              example:
+                created_at: '2024-03-27T03:26:19.385Z'
+                message: Access denied.
+        '404':
+          description: Шаблон не найден
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/ErrorDto'
+              example:
+                created_at: '2024-03-27T03:26:19.385Z'
+                message: Template not found.
+        '500':
+          description: Ошибка на сервере
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/ErrorDto'
+              example:
+                created_at: '2024-03-27T03:26:19.385Z'
+                message: Internal server error.
+  /api/v0/template/delete/{code}:
+    delete:
+      tags:
+        - Template
+      summary: Удаление шаблона
+      description: |-
+        Проверяет существует ли шаблон с заданным кодом и в случае успеха удалят конфигурацию из базы данных и файл из 
+        хранилища
+      operationId: deleteTemplate
+      security:
+        - bearerAuth:
+            - DELETE_TEMPLATE
+      parameters:
+        - name: code
+          description: Код шаблона
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 'activation_account_message'
+      responses:
+        '202':
+          description: Процесс изменения email начат
+        '403':
+          description: Нет доступа
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/ErrorDto'
+              example:
+                created_at: '2024-03-27T03:26:19.385Z'
+                message: Access denied.
+        '404':
+          description: Шаблон не найден
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/ErrorDto'
+              example:
+                created_at: '2024-03-27T03:26:19.385Z'
+                message: Template not found.
+        '500':
+          description: Ошибка на сервере
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/ErrorDto'
+              example:
+                created_at: '2024-03-27T03:26:19.385Z'
+                message: Internal server error.
+  /sys/v0/template/render:
+    post:
+      tags:
+        - System
+      summary: Рендер шаблона
+      description: Ищет шаблон по коду, проверяет заданные параметры на валидность и в случае успеха рендерит шаблон
+      operationId: sysRenderTemplate
+      security:
+        - bearerAuth:
+            - RENDER_TEMPLATE
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RenderDto'
+        required: true
+      responses:
+        '200':
+          description: Шаблон успешно создан
+          content:
+            'text/html':
+              schema:
+                type: string
+                example: '<p>Привет, Василий!</p>'
+        '400':
+          description: Переданы неправильные аргументы шаблона
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/ErrorDto'
+              examples:
+                Аргументы дублируются:
+                  description: Аргументы дублируются
+                  value:
+                    created_at: '2024-03-27T03:26:19.385Z'
+                    message: 'Invalid template arguments: Arguments are duplicated.'
+                Пропущен обязательный аргумент:
+                  description: Пропущен обязательный аргумент
+                  value:
+                    created_at: '2024-03-27T03:26:19.385Z'
+                    message: 'Invalid template arguments: Missing required argument.'
+                Передан лишний аргумент:
+                  description: Передан лишний аргумент
+                  value:
+                    created_at: '2024-03-27T03:26:19.385Z'
+                    message: 'Invalid template arguments: Extra argument passed.'
         '403':
           description: Нет доступа
           content:
