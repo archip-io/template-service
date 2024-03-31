@@ -393,7 +393,7 @@ class TemplateServiceImplTest {
 
   @Test
   public void
-  renderTemplate_whenTemplateConfigExistsAndTemplateFileNotFound_thenThrownTemplateNotFoundException() {
+      renderTemplate_whenTemplateConfigExistsAndTemplateFileNotFound_thenThrownTemplateNotFoundException() {
     // Prepare
     final var code = "code";
     final var renderDto = RenderDto.builder().code(code).build();
@@ -404,7 +404,7 @@ class TemplateServiceImplTest {
 
     // Do
     assertThatExceptionOfType(TemplateNotFoundException.class)
-            .isThrownBy(() -> templateService.renderTemplate(renderDto));
+        .isThrownBy(() -> templateService.renderTemplate(renderDto));
 
     // Check
     verify(templateRepository, times(1)).findByCode(code);

@@ -5,8 +5,8 @@ CREATE TABLE IF NOT EXISTS templates
     name        VARCHAR(255) NOT NULL UNIQUE,
     description TEXT,
     parameters  JSONB,
-    created_at  TIMESTAMPTZ NOT NULL,
-    updated_at  TIMESTAMPTZ NOT NULL
+    created_at  TIMESTAMPTZ  NOT NULL,
+    updated_at  TIMESTAMPTZ  NOT NULL
 );
 
 COMMENT ON TABLE templates IS 'Шаблоны';
