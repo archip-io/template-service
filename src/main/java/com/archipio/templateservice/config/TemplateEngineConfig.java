@@ -16,7 +16,7 @@ public class TemplateEngineConfig {
   public TemplateEngine customTemplateEngine() {
     var templateResolver = new FileTemplateResolver();
     templateResolver.setPrefix("");
-    templateResolver.setTemplateMode("HTML5");
+    templateResolver.setTemplateMode("HTML");
     templateEngine.setTemplateResolver(templateResolver);
 
     return templateEngine;
